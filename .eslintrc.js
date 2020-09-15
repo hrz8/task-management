@@ -1,43 +1,43 @@
 module.exports = {
-    "root": true,
-    "env": {
-        "node": true,
-        "commonjs": true,
-        "es6": true,
-        "jquery": false,
-        "jest": true,
-        "jasmine": true
+    'root': true,
+    'env': {
+        'node': true,
+        'commonjs': true,
+        'es6': true,
+        'jquery': false,
+        'jest': true,
+        'jasmine': true
     },
-    "extends": "eslint:recommended",
-    "parserOptions": {
-        "sourceType": "module",
-        "ecmaVersion": "2018"
+    'extends': 'eslint:recommended',
+    'parserOptions': {
+        'sourceType': 'module',
+        'ecmaVersion': '2018'
     },
-    "rules": {
-        "indent": [
-            "warn",
-            "tab",
-            { "SwitchCase": 1 }
+    'rules': {
+        'indent': [
+            'warn',
+            4,
+            { 'SwitchCase': 1 }
         ],
-        "quotes": [
-            "warn",
-            "double"
+        'quotes': [
+            'warn',
+            'single'
         ],
-        "semi": [
-            "error",
-            "always"
+        'semi': [
+            'error',
+            'always'
         ],
-        "no-var": [
-            "error"
+        'no-var': [
+            'error'
         ],
-        "no-console": [
-            "off"
+        'no-console': [
+            'off'
         ],
-        "no-unused-vars": [
-            "warn"
+        'no-unused-vars': [
+            'warn'
         ],
-        "no-mixed-spaces-and-tabs": [
-            "warn"
+        'no-mixed-spaces-and-tabs': [
+            'warn'
         ]
     }
 };

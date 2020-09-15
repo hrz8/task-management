@@ -9,9 +9,10 @@
     "ci": "jest --watch",
     "test": "jest --coverage",
     "lint": "eslint services",
-    "dc:up": "docker-compose up --build -d",
-    "dc:logs": "docker-compose logs -f",
-    "dc:down": "docker-compose down"
+    "db:create": "node database/init create",
+    "db:drop": "node database/init drop",
+    "db:migrate": "knex migrate:latest",
+    "db:seed": "knex seed:run"
   },
   "keywords": [
     "microservices",
@@ -25,12 +26,20 @@
     "moleculer-repl": "^0.6.4"
   },
   "dependencies": {
-    "moleculer-web": "^0.9.0",
+    "bcryptjs": "^2.4.3",
+    "ioredis": "^4.17.3",
+    "joi": "^17.2.1",
+    "knex": "^0.21.5",
+    "lodash": "^4.17.20",
+    "moleculer": "^0.14.10",
     "moleculer-db": "^0.8.4",
     "moleculer-db-adapter-mongo": "^0.4.7",
+    "moleculer-web": "^0.9.0",
+    "moment": "^2.28.0",
+    "mysql2": "^2.1.0",
     "nats": "^1.4.12",
-    "ioredis": "^4.17.3",
-    "moleculer": "^0.14.10"
+    "objection": "^2.2.3",
+    "randomstring": "^1.1.5"
   },
   "engines": {
     "node": ">= 10.x.x"
