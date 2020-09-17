@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const BaseValidator = require('moleculer').Validators.Base;
 const { ValidationError } = require('moleculer').Errors;
 
@@ -14,7 +15,7 @@ class JoiValidator extends BaseValidator {
         const res = schema.validate(params);
         if (res.error)
             throw new ValidationError(res.error.message, null, res.error.details);
-
+        _.assign(params, res.value);
         return true;
     }
 }

@@ -9,8 +9,14 @@ module.exports = {
         port: process.env.PORT || 3000,
         routes: [
             {
+                path: '/api',
+                authentication: false,
+                aliases: {
+                    'POST login': 'sessions.create',
+                },
+            },
+            {
                 path: '/api/todos',
-                whitelist: ['**'],
                 aliases: {
                     'GET ': 'todos.list',
                     'GET :id': 'todos.get'
@@ -18,7 +24,6 @@ module.exports = {
             },
             {
                 path: '/api/users',
-                whitelist: ['**'],
                 aliases: {
                     'GET ': 'users.list',
                     'GET :id': 'users.get'

@@ -1,41 +1,53 @@
-const ApiGateway = require('moleculer-web');
+const _ = require('lodash');
+const jwt = require('jsonwebtoken');
+const moment = require('moment');
+
+const MolErr = require('moleculer-web').Errors;
+
+const { jwt: jwtConfig } = require('../app.config')[process.env.NODE_ENV || 'development'];
 
 module.exports = {
     methods: {
         async authenticate(ctx, route, req) {
-            // Read the token from header
-            const auth = req.headers['authorization'];
+            const token = _
+                .chain(req.headers)
+                .get('authorization', '')
+                .invoke('slice', 7)
+                .value();
+            if (_.isEmpty(token)) throw new MolErr.UnAuthorizedError('NO_RIGHTS');
 
-            if (auth && auth.startsWith('Bearer')) {
-                const token = auth.slice(7);
+            const decoded = jwt.decode(token, jwtConfig.secret);
+            const userId = _.toInteger(_.get(decoded, 'sub'));
+            if (_.isEmpty(decoded)) throw new MolErr.UnAuthorizedError(MolErr.ERR_INVALID_TOKEN);
 
-                // Check the token. Tip: call a service which verify the token. E.g. `accounts.resolveToken`
-                if (token == '123456') {
-                    // Returns the resolved user. It will be set to the `ctx.meta.user`
-                    return { id: 1, name: 'John Doe' };
+            await this.verifyJWT(token, jwtConfig.secret);
 
-                } else {
-                    // Invalid token
-                    throw new ApiGateway.Errors.UnAuthorizedError(ApiGateway.Errors.ERR_INVALID_TOKEN);
-                }
+            const sessions = await ctx.broker.models.Session.query().where({ token, userId });
+            const session = _.head(sessions);
+            if (_.isEmpty(session)) throw new MolErr.UnAuthorizedError(MolErr.ERR_INVALID_TOKEN);
 
-            } else {
-                // No token. Throw an error or do nothing if anonymous access is allowed.
-                // throw new E.UnAuthorizedError(E.ERR_NO_TOKEN);
-                return null;
-            }
+            const expired = _.get(session, 'expired');
+            if (moment(expired).isBefore(moment())) throw new MolErr.UnAuthorizedError('ERR_EXPIRED_TOKEN');
+            
+            const user = await ctx.broker.models.User.query().findById(userId);
+            return user;
         },
 
         async authorize(ctx, route, req) {
-            // Get the authenticated user.
             const user = ctx.meta.user;
-
-            // It check the `auth` property in action schema.
             if (req.$action.auth == 'required' && !user) {
-                throw new ApiGateway.Errors.UnAuthorizedError('NO_RIGHTS');
+                throw new MolErr.UnAuthorizedError('NO_RIGHTS');
             }
-        }
+        },
 
+        async verifyJWT(token, secret) {
+            return new Promise((resolve, reject) => {
+                jwt.verify(token, secret, (err, decoded) => {
+                    if (err) return reject(err);
+                    return resolve(decoded);
+                });
+            });
+        },
     },
 
     created() {
@@ -43,8 +55,9 @@ module.exports = {
             // default value from moleculer 0.14
             return {
                 use: [],
+                whitelist: ['**'],
                 mergeParams: false,
-                authentication: false,
+                authentication: true,
                 authorization: false,
                 callingOptions: {},
                 bodyParsers: {

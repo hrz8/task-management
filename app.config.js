@@ -9,6 +9,10 @@ module.exports = {
             password: process.env.DB_PASSWORD || 'toor',
             name: 'task_management',
             timezone: '+00:00',
+        },
+        jwt: {
+            secret: 'JhGTbHlBjCROUCOL3V4hK3c3P5PeOM4gdB37n5y2',
+            expiresIn: '3d'
         }
     },
 };
