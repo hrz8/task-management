@@ -1,24 +1,24 @@
 module.exports = (Model) => {
-    class User extends Model {
+    class TaskList extends Model {
         static get tableName() {
-            return 'users';
+            return 'task_lists';
         }
 
         static get relationMappings() {
             const Task = require('./Task')(Model);
 
             return {
-                tasks: {
-                    relation: Model.HasManyRelation,
+                task: {
+                    relation: Model.BelongsToOneRelation,
                     modelClass: Task,
                     join: {
-                        from: `${this.tableName}.id`,
-                        to: `${Task.tableName}.userId`
+                        from: `${this.tableName}.taskId`,
+                        to: `${Task.tableName}.id`
                     }
-                },
+                }
             };
         }
     }
 
-    return User;
+    return TaskList;
 };

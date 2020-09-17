@@ -1,5 +1,7 @@
 const _ = require('lodash');
 const joi = require('joi');
+const MolErr = require('moleculer-web').Errors;
+
 const { Response } = require('../helpers/response');
 
 const CommonMixin = require('../mixins/common.mixin');
@@ -35,6 +37,10 @@ module.exports = {
                 }),
             async handler(ctx) {
                 const payload = _.get(ctx, 'params.body');
+
+                const exist = await ctx.broker.models.User.query().findOne({ username: payload.username });
+                if (!_.isEmpty(exist)) throw new MolErr.BadRequestError('USERNAME_ALREADY_EXIST');
+
                 const user = await ctx.broker.models.User.query().insertAndFetch(payload);
                 return new Response(user);
             }

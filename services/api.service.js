@@ -13,13 +13,14 @@ module.exports = {
                 authentication: false,
                 aliases: {
                     'POST login': 'sessions.create',
+                    'POST sign-up': 'users.create'
                 },
             },
             {
-                path: '/api/todos',
+                path: '/api/tasks',
                 aliases: {
-                    'GET ': 'todos.list',
-                    'GET :id': 'todos.get'
+                    'GET ': 'tasks.list',
+                    'GET :id': 'tasks.get'
                 },
             },
             {
