@@ -93,14 +93,14 @@ localhost:3000/api
 {
     "location": "GYM",
     "raw": [
-        "train biceps for gun at 9am tomorrow"
+        "train biceps for the guns at 9am tomorrow"
     ]
 }
 # OR
 {
     "location": "GYM",
     "raw": [
-        "train biceps for gun at 9am sunday"
+        "train biceps for the guns at 9am sunday"
     ]
 }
 ```
