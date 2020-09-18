@@ -64,7 +64,8 @@ module.exports = {
                                 )
                                 .min(1)
                         })
-                        .xor('lists', 'raw'),
+                        .xor('lists', 'raw')
+                        .xor('raw', 'startAt'),
                     params: joi.object()
                         .optional()
                 }),
@@ -79,6 +80,11 @@ module.exports = {
                 _.set(payload, 'day', day);
 
                 await this.createValidation(ctx, payload, day);
+
+                if (!_.isEmpty(raw)) {
+                    _.unset(payload, 'raw');
+                    
+                }
 
                 const trx = await ctx.broker.models.transaction.start();
                 const task = await ctx.broker.models.Task
@@ -233,10 +239,12 @@ module.exports = {
             _.forEach(lists, list => {
                 const listStartAt = _.get(list, 'startAt');
                 const listEndAt = _.get(list, 'endAt');
+                // iif list startAt is before task startAt
                 if (!_.isUndefined(listStartAt)
                     && !_.isUndefined(startAt)
                     && moment(listStartAt).isBefore(moment(startAt))
                 ) throw new MolErr.BadRequestError('OFFSET_TIME_LIST');
+                // iif list endAt is after task endAt
                 if (!_.isUndefined(listEndAt) 
                     && !_.isUndefined(endAt)
                     && moment(listEndAt).isAfter(moment(endAt))

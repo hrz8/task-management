@@ -60,7 +60,7 @@ describe('Test services', () => {
             ]
         };
 
-        it('should get the updated item', async () => {
+        it('should create new task', async () => {
             const res = await broker.call('tasks.create', { body: task }, { meta: { user: { id: USER_ID} } } );
             expect(res.status).toEqual('200');
             await broker.call('users.remove', { params: { username: record.username } } );

@@ -29,8 +29,7 @@ module.exports = {
                 path: '/api/users',
                 aliases: {
                     'GET ': 'users.list',
-                    'GET :id': 'users.get',
-                    'DELETE :username': 'users.remove'
+                    'GET :id': 'users.get'
                 },
             }
         ],
