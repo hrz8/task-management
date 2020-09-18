@@ -74,7 +74,7 @@ module.exports = {
                 const payload = _.get(ctx, 'params.body');
 
                 _.set(payload, 'userId', user.id);
-                const { lists, raw } = payload;
+                const { raw } = payload;
 
                 const day = _.get(payload, 'day', moment(new Date()).startOf('day').toDate());
                 _.set(payload, 'day', day);
@@ -82,8 +82,44 @@ module.exports = {
                 await this.createValidation(ctx, payload, day);
 
                 if (!_.isEmpty(raw)) {
+                    let lists = [];
                     _.unset(payload, 'raw');
-                    
+                    const jamRgx = new RegExp('(?<jam>(\\d{1,2})(pm|am))', 'i');
+                    const tglRgx = new RegExp('(?<tgl>(\\d{1,2}) (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))', 'i');
+                    const altTglRgx = new RegExp('(?<har>(tomorrow|today|sunday|monday|tuesday|wednesday|thursday|friday|saturday))', 'i');
+                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    _.forEach(raw, str => {
+                        const p = {};
+                        _.set(p, 'description', str);
+                        let jam = _.get(jamRgx.exec(str), 'groups.jam');
+                        if (_.endsWith(jam, ' ')) jam.slice(0, -1);
+                        const tgl = _.get(tglRgx.exec(str), 'groups.tgl');
+                        const har = _.get(altTglRgx.exec(str), 'groups.har');
+                        if (!_.isUndefined(tgl) || !_.isUndefined(har)) _.unset(payload, 'day');
+                        if (!_.isUndefined(jam)) {
+                            let dt = day;
+                            let jamint = parseInt(jamRgx.exec(str)[2]);
+                            if (jamRgx.exec(str)[3] === 'pm') {
+                                jamint += 12;
+                            }
+                            if (!_.isUndefined(har)) {
+                                let inc = 0;
+                                const todayNameDay = moment(day).format('dddd').toLocaleLowerCase();
+                                if (har === 'tomorrow') inc = 1;
+                                if (har !== 'today' && har !== 'tomorrow') {
+                                    const tdyI = days.indexOf(todayNameDay);
+                                    const harI = days.indexOf(har);
+                                    inc = harI - tdyI < 0 ? harI - tdyI + 7 : harI - tdyI;
+                                }
+                                dt = moment(day).add(inc, 'day').startOf('day').toDate();
+                                _.set(payload, 'day', dt);
+                                dt = moment(moment(dt).format('YYYY-MM-DD') + ' ' + String(jamint).padStart(2, '0')).toDate();
+                            }
+                            _.set(p, 'startAt', dt);
+                        }
+                        lists.push(p);
+                    });
+                    _.set(payload, 'lists', lists);
                 }
 
                 const trx = await ctx.broker.models.transaction.start();

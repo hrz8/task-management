@@ -22,6 +22,7 @@ $ npm install
 $ npm run db:create
 $ npm run db:migrate
 $ npm run db:seed
+
 # Run testing
 $ npm run jest
 ```
@@ -86,6 +87,20 @@ localhost:3000/api
             "startAt": "<optional>", # DD/MM/YYY hh:mm
             "endAt": "<optional>" # DD/MM/YYY hh:mm
         }
+    ]
+}
+# OR
+{
+    "location": "GYM",
+    "raw": [
+        "train biceps for gun at 9am tomorrow"
+    ]
+}
+# OR
+{
+    "location": "GYM",
+    "raw": [
+        "train biceps for gun at 9am sunday"
     ]
 }
 ```
