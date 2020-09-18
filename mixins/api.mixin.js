@@ -9,6 +9,7 @@ const { jwt: jwtConfig } = require('../app.config')[process.env.NODE_ENV || 'dev
 module.exports = {
     methods: {
         async authenticate(ctx, route, req) {
+            // collecting bearer token jwt
             const token = _
                 .chain(req.headers)
                 .get('authorization', '')
@@ -16,28 +17,30 @@ module.exports = {
                 .value();
             if (_.isEmpty(token)) throw new MolErr.UnAuthorizedError('NO_RIGHTS');
 
+            // decode jwt token
             const decoded = jwt.decode(token, jwtConfig.secret);
             const userId = _.toInteger(_.get(decoded, 'sub'));
             if (_.isEmpty(decoded)) throw new MolErr.UnAuthorizedError(MolErr.ERR_INVALID_TOKEN);
 
+            // verifying token with jwt secret
             await this.verifyJWT(token, jwtConfig.secret);
 
-            const sessions = await ctx.broker.models.Session.query().where({ token, userId });
+            // fetch session data from db, based on userId and token column
+            const sessions = await ctx.broker.models.Session
+                .query()
+                .where({ token, userId });
             const session = _.head(sessions);
             if (_.isEmpty(session)) throw new MolErr.UnAuthorizedError(MolErr.ERR_INVALID_TOKEN);
 
+            // check the expiration of session data from db
             const expired = _.get(session, 'expired');
             if (moment(expired).isBefore(moment())) throw new MolErr.UnAuthorizedError('ERR_EXPIRED_TOKEN');
             
-            const user = await ctx.broker.models.User.query().findById(userId);
+            // user data will return into ctx.meta.user
+            const user = await ctx.broker.models.User
+                .query()
+                .findById(userId);
             return user;
-        },
-
-        async authorize(ctx, route, req) {
-            const user = ctx.meta.user;
-            if (req.$action.auth == 'required' && !user) {
-                throw new MolErr.UnAuthorizedError('NO_RIGHTS');
-            }
         },
 
         async verifyJWT(token, secret) {

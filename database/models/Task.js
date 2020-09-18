@@ -20,7 +20,7 @@ module.exports = (Model) => {
 
                 lists: {
                     relation: Model.HasManyRelation,
-                    modelClass: User,
+                    modelClass: TaskList,
                     join: {
                         from: `${this.tableName}.id`,
                         to: `${TaskList.tableName}.taskId`

@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const moment = require('moment');
 const { SuccessResponse } = require('../helpers/response');
 
 module.exports = {
@@ -54,15 +55,58 @@ module.exports = {
                 }]`);
         },
 
-        createPagination(params) {
-            const page = _.get(params, 'page', 1);
-            const limit = _.get(params, 'limit', 25);
-            const offset = limit * (page - 1);
+        createDateFilter(params) {
+            const tableName = _.get(params, 'tableName');
+            let orderDate = _.get(params, 'orderDate', 'day');
+            let startDate = _.get(params, 'startDate');
+            let endDate = _.get(params, 'endDate');
         
-            return { page, limit, offset };
+            if (tableName) orderDate = `${tableName}.${orderDate}`;
+        
+            let operator = '';
+            let operand = [];
+            let where = '';
+            let func = 'where';
+        
+            if (startDate || endDate) {
+                if (startDate) {
+                    startDate = moment(startDate)
+                        .startOf('day')
+                        .toDate();
+                    operator = '>=';
+                    operand = startDate;
+                }
+                if (endDate) {
+                    endDate = moment(endDate)
+                        .endOf('day')
+                        .toDate();
+                    operator = '<=';
+                    operand = endDate;
+                }
+        
+                if (startDate && endDate) {
+                    operand = [startDate, endDate];
+                }
+        
+                where = [orderDate, operator, operand];
+        
+                if (startDate && endDate) {
+                    func = 'whereBetween';
+                    where.splice(1, 1);
+                }
+            }
+        
+            return {
+                func,
+                args: where
+            };
         },
 
         buildQuery(params, builder) {
+            const filterDate = this.createDateFilter(params);
+            const { args: filterByDate, func: dateOp } = filterDate;
+            if (filterByDate) builder[dateOp](...filterByDate);
+
             if (params.limit > 0) {
                 builder.page(params.page - 1, params.limit);
             } else {

@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const joi = require('joi');
+const bcrypt = require('bcryptjs');
 const MolErr = require('moleculer-web').Errors;
 
 const { Response } = require('../helpers/response');
@@ -38,10 +39,16 @@ module.exports = {
             async handler(ctx) {
                 const payload = _.get(ctx, 'params.body');
 
-                const exist = await ctx.broker.models.User.query().findOne({ username: payload.username });
+                const exist = await ctx.broker.models.User
+                    .query()
+                    .findOne({ 
+                        username: payload.username
+                    });
                 if (!_.isEmpty(exist)) throw new MolErr.BadRequestError('USERNAME_ALREADY_EXIST');
 
+                _.set(payload, 'password', bcrypt.hashSync(payload.password, 8));
                 const user = await ctx.broker.models.User.query().insertAndFetch(payload);
+                _.unset(user, 'password');
                 return new Response(user);
             }
         },
@@ -68,10 +75,24 @@ module.exports = {
                 }),
             async handler(ctx) {
                 const { page, limit } = _.get(ctx, 'params.query');
-                const users = await ctx.broker.models.User.query().modify(builder => {
-                    ctx.service.buildQuery({ page, limit }, builder);
-                });
-                return new Response(users.results, { count: users.total, page, limit });
+                const users = await ctx.broker.models.User
+                    .query()
+                    .modify(builder => {
+                        ctx.service.buildQuery({ page, limit }, builder);
+                        builder.select(
+                            'users.id as id',
+                            'users.username as username',
+                            'users.fullName as fullName',
+                        );
+                    });
+                
+                return new Response(
+                    users.results, { 
+                        count: users.total, 
+                        page, 
+                        limit 
+                    }
+                );
             }
         },
 
@@ -92,8 +113,37 @@ module.exports = {
                 }),
             async handler(ctx) {
                 const id = _.get(ctx, 'params.params.id');
-                const user = await ctx.broker.models.User.query().findById(id);
+                const user = await ctx.broker.models.User
+                    .query()
+                    .findById(id);
+                _.unset(user, 'password');
                 return new Response(user);
+            }
+        },
+
+        remove: {
+            params: joi.object()
+                .keys({
+                    query: joi.object()
+                        .optional(),
+                    body: joi.object()
+                        .optional(),
+                    params: joi.object()
+                        .keys({
+                            username: joi.string()
+                                .required()
+                        })
+                        .required()
+                }),
+            async handler(ctx) {
+                const { username } = _.get(ctx, 'params.params');
+
+                await ctx.broker.models.User
+                    .query()
+                    .where({ username })
+                    .del();
+
+                return new Response({ cleared: true });
             }
         }
     },

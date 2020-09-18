@@ -12,13 +12,15 @@ module.exports = {
                 path: '/api',
                 authentication: false,
                 aliases: {
+                    'POST sign-up': 'users.create',
                     'POST login': 'sessions.create',
-                    'POST sign-up': 'users.create'
+                    'POST logout': 'sessions.destroy'
                 },
             },
             {
                 path: '/api/tasks',
                 aliases: {
+                    'POST ': 'tasks.create',
                     'GET ': 'tasks.list',
                     'GET :id': 'tasks.get'
                 },
@@ -27,7 +29,8 @@ module.exports = {
                 path: '/api/users',
                 aliases: {
                     'GET ': 'users.list',
-                    'GET :id': 'users.get'
+                    'GET :id': 'users.get',
+                    'DELETE :username': 'users.remove'
                 },
             }
         ],

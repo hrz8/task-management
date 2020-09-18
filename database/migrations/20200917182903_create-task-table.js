@@ -6,10 +6,13 @@ exports.up = function(knex) {
             .unsigned()
             .notNullable();
         table.string('location')
-            .nullable();  
-        table.datetime('startAt')
+            .nullable();
+        table.datetime('day')
+            .notNullable()
             .index();
-        table.datetime('endAt')
+        table.datetime('start_at')
+            .index();
+        table.datetime('end_at')
             .index();
         table.timestamps(true, true);
 

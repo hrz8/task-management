@@ -26,6 +26,7 @@
     "moleculer-repl": "^0.6.4"
   },
   "dependencies": {
+    "@hapi/joi-date": "^2.0.1",
     "bcryptjs": "^2.4.3",
     "ioredis": "^4.17.3",
     "joi": "^17.2.1",

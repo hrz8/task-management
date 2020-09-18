@@ -7,9 +7,9 @@ exports.up = function(knex) {
             .notNullable();
         table.string('description')
             .nullable();  
-        table.datetime('startAt')
+        table.datetime('start_at')
             .index();
-        table.datetime('endAt')
+        table.datetime('end_at')
             .index();
         table.timestamps(true, true);
 
