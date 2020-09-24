@@ -47,19 +47,14 @@ module.exports = {
 
                 const prevSession = await ctx.broker.models.Session.query().findOne({ userId: user.id });
 
-                let sessData;
                 if (!_.isEmpty(prevSession)) {
-                    await prevSession.$query().updateAndFetch({
-                        expired: new Date(Date.now() + ms(jwtConfig.expiresIn))
-                    });
-                    sessData = prevSession;
-                } else {
-                    sessData = this.generateSessionData(user.id, 'user');
-                    await ctx.broker.models.Session.query().insertAndFetch({
-                        userId: user.id,
-                        ...sessData
-                    });
+                    await prevSession.$query().delete();
                 }
+                const sessData = this.generateSessionData(user.id, 'user');
+                await ctx.broker.models.Session.query().insertAndFetch({
+                    userId: user.id,
+                    ...sessData
+                });
 
                 return new Response({
                     user,
@@ -92,7 +87,7 @@ module.exports = {
                 });
 
                 for (const session of sessions) {
-                    session.$query().delete();
+                    await session.$query().delete();
                 }
 
                 return new Response({ cleared: true });
