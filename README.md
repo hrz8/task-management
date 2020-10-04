@@ -68,23 +68,23 @@ localhost:8089/api
 {
     "location": "Hotel Vero",
     "day": "22/09/2020",
-    "startAt": "<optional>", // DD/MM/YYY hh:mm
-    "endAt": "<optional>", // DD/MM/YYY hh:mm
+    "startAt": "<optional>",
+    "endAt": "<optional>",
     "lists": [
         {
             "description": "Some activity 0",
-            "startAt": "<optional>", // DD/MM/YYY hh:mm
-            "endAt": "<optional>" // DD/MM/YYY hh:mm
+            "startAt": "<optional>",
+            "endAt": "<optional>"
         },
         {
             "description": "Some activity 1",
-            "startAt": "<optional>", // DD/MM/YYY hh:mm
-            "endAt": "<optional>" // DD/MM/YYY hh:mm
+            "startAt": "<optional>",
+            "endAt": "<optional>"
         },
         {
             "description": "Some activity 2",
-            "startAt": "<optional>", // DD/MM/YYY hh:mm
-            "endAt": "<optional>" // DD/MM/YYY hh:mm
+            "startAt": "<optional>",
+            "endAt": "<optional>"
         }
     ]
 }
