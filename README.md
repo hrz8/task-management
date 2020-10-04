@@ -5,9 +5,7 @@
 ### Reuirements
 
 ```bash
-NATS Server
 MySQL
-Redis Server
 ```
 
 ### Usage
@@ -24,18 +22,19 @@ $ npm run db:migrate
 $ npm run db:seed
 
 # Run testing
-$ npm run jest
+$ npm run test
+$ yarn jest
 ```
 
 ``` bash
-# RUn REST API Server
-$ node run dev
+# Run REST API Server
+$ npm run dev
 ```
 
 #### Base Endpoint
 
 ``` bash
-localhost:3000/api
+localhost:8089/api
 ```
 
 #### Available Endpoints
@@ -64,43 +63,67 @@ localhost:3000/api
 ```
 
 `POST /tasks`
-``` bash
+``` json
 # Header with Authorization: Bearer token
 {
     "location": "Hotel Vero",
     "day": "22/09/2020",
-    "startAt": "<optional>", # DD/MM/YYY hh:mm
-    "endAt": "<optional>", # DD/MM/YYY hh:mm
+    "startAt": "<optional>", // DD/MM/YYY hh:mm
+    "endAt": "<optional>", // DD/MM/YYY hh:mm
     "lists": [
         {
             "description": "Some activity 0",
-            "startAt": "<optional>", # DD/MM/YYY hh:mm
-            "endAt": "<optional>" # DD/MM/YYY hh:mm
+            "startAt": "<optional>", // DD/MM/YYY hh:mm
+            "endAt": "<optional>" // DD/MM/YYY hh:mm
         },
         {
             "description": "Some activity 1",
-            "startAt": "<optional>", # DD/MM/YYY hh:mm
-            "endAt": "<optional>" # DD/MM/YYY hh:mm
+            "startAt": "<optional>", // DD/MM/YYY hh:mm
+            "endAt": "<optional>" // DD/MM/YYY hh:mm
         },
         {
             "description": "Some activity 2",
-            "startAt": "<optional>", # DD/MM/YYY hh:mm
-            "endAt": "<optional>" # DD/MM/YYY hh:mm
+            "startAt": "<optional>", // DD/MM/YYY hh:mm
+            "endAt": "<optional>" // DD/MM/YYY hh:mm
         }
     ]
 }
-# OR
+```
+OR
+``` json
 {
-    "location": "GYM",
+    "location": "Gym",
     "raw": [
         "train biceps for the guns at 9am tomorrow"
     ]
 }
-# OR
+```
+OR
+``` json
 {
-    "location": "GYM",
+    "location": "Gym",
     "raw": [
         "train biceps for the guns at 9am sunday"
+    ]
+}
+```
+OR
+``` json
+{
+    "location": "Gym",
+    "raw": [
+        "train biceps for the guns at 9pm tomorrow",
+        "train tricep at 10pm"
+    ]
+}
+```
+OR
+``` json
+{
+    "location": "Gym",
+    "raw": [
+        "train biceps for the guns at 9pm 19 jun",
+        "train tricep at 10pm"
     ]
 }
 ```

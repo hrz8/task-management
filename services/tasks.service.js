@@ -65,6 +65,7 @@ module.exports = {
                                 .min(1)
                         })
                         .xor('lists', 'raw')
+                        .xor('day', 'raw')
                         .xor('raw', 'startAt'),
                     params: joi.object()
                         .optional()
@@ -74,57 +75,108 @@ module.exports = {
                 const payload = _.get(ctx, 'params.body');
 
                 _.set(payload, 'userId', user.id);
-                const { raw } = payload;
 
-                const day = _.get(payload, 'day', moment(new Date()).startOf('day').toDate());
+                const day = _.get(payload, 'day', moment(new Date())
+                    .startOf('day')
+                    .toDate());
                 _.set(payload, 'day', day);
 
                 await this.createValidation(ctx, payload, day);
 
+                // handle payload when raw key payload is not empty
+                const raw = _.get(payload, 'raw');
                 if (!_.isEmpty(raw)) {
-                    let lists = [];
                     _.unset(payload, 'raw');
-                    const jamRgx = new RegExp('(?<jam>(\\d{1,2})(pm|am))', 'i');
-                    const tglRgx = new RegExp('(?<tgl>(\\d{1,2}) (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))', 'i');
-                    const altTglRgx = new RegExp('(?<har>(tomorrow|today|sunday|monday|tuesday|wednesday|thursday|friday|saturday))', 'i');
-                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    let lists = [];
+
+                    let initDay = true;
+                    let dt = day;
                     _.forEach(raw, str => {
-                        const p = {};
-                        _.set(p, 'description', str);
-                        let jam = _.get(jamRgx.exec(str), 'groups.jam');
-                        if (_.endsWith(jam, ' ')) jam.slice(0, -1);
-                        const tgl = _.get(tglRgx.exec(str), 'groups.tgl');
-                        const har = _.get(altTglRgx.exec(str), 'groups.har');
-                        if (!_.isUndefined(tgl) || !_.isUndefined(har)) _.unset(payload, 'day');
-                        if (!_.isUndefined(jam)) {
-                            let dt = day;
-                            let jamint = parseInt(jamRgx.exec(str)[2]);
-                            if (jamRgx.exec(str)[3] === 'pm') {
-                                jamint += 12;
+                        // prep payload[]
+                        const pl = {};
+                        _.set(pl, 'description', str);
+
+                        // collecting date from string
+                        const { 
+                            dateRaw,
+                            altDateRaw,
+                            dayValue,
+                            monthValue
+                        } = this.collectDate(str);
+
+                        // collecting hour from string
+                        const {
+                            hourRaw,hourValue
+                        } = this.collectHour(str);
+
+                        // handling date regex result
+                        if (!_.isNull(dateRaw) || !_.isNull(altDateRaw)) {
+
+                            // make sure that will not something like this: 
+                            // "train biceps for the guns at 19 jun 9pm tomorrow"
+                            if (!_.isNull(dateRaw) 
+                                && !_.isNull(altDateRaw)) throw new MolErr
+                                .BadRequestError('AMBIGOUS_DATE_INPUT');
+
+                            if (!_.isNull(dateRaw)) {
+                                const monthStr = String(monthValue).padStart(2, '0');
+                                const dayStr = String(dayValue).padStart(2, '0');
+                                dt = moment(`${moment().year()}-${monthStr}-${dayStr}`)
+                                    .startOf('day')
+                                    .toDate();
                             }
-                            if (!_.isUndefined(har)) {
-                                let inc = 0;
-                                const todayNameDay = moment(day).format('dddd').toLocaleLowerCase();
-                                if (har === 'tomorrow') inc = 1;
-                                if (har !== 'today' && har !== 'tomorrow') {
-                                    const tdyI = days.indexOf(todayNameDay);
-                                    const harI = days.indexOf(har);
+
+                            if (!_.isNull(altDateRaw)) {
+                                let inc = altDateRaw === 'tomorrow'? 1 : 0;
+                                const todayNameDay = moment(day)
+                                    .format('dddd')
+                                    .toLocaleLowerCase();
+                                if (altDateRaw !== 'today' && altDateRaw !== 'tomorrow') {
+                                    const tdyI = moment.weekdays()
+                                        .indexOf(
+                                            todayNameDay.charAt(0).toUpperCase() + todayNameDay.slice(1)
+                                        );
+                                    const harI = moment.weekdays()
+                                        .indexOf(
+                                            altDateRaw.charAt(0).toUpperCase() + altDateRaw.slice(1)
+                                        );
                                     inc = harI - tdyI < 0 ? harI - tdyI + 7 : harI - tdyI;
                                 }
-                                dt = moment(day).add(inc, 'day').startOf('day').toDate();
-                                _.set(payload, 'day', dt);
-                                dt = moment(moment(dt).format('YYYY-MM-DD') + ' ' + String(jamint).padStart(2, '0')).toDate();
+                                dt = moment(day)
+                                    .add(inc, 'day')
+                                    .startOf('day')
+                                    .toDate();
+                                _.set(pl, 'startAt', dt);
                             }
-                            _.set(p, 'startAt', dt);
+
+                            // replace day payload if not yes replaced
+                            if (initDay) {
+                                _.set(payload, 'day', dt);
+                                initDay = false;
+                            } else if (!moment(dt).isSame(moment(_.get(payload, 'day')))) {
+                                throw new MolErr
+                                    .BadRequestError('DIFFERENT_DATE_IN_SAME_TASK');
+                            }
                         }
-                        lists.push(p);
+
+                        // handling hour regex result
+                        if (!_.isNull(hourRaw)) {
+                            const hourStr = String(hourValue).padStart(2, '0');
+                            dt = moment(
+                                `${moment(dt).format('YYYY-MM-DD')} ${hourStr}`
+                            ).toDate();
+                            _.set(pl, 'startAt', dt);
+                            initDay = false;
+                        }
+
+                        lists.push(pl);
                     });
                     _.set(payload, 'lists', lists);
                 }
 
                 const trx = await ctx.broker.models.transaction.start();
                 const task = await ctx.broker.models.Task
-                    .query()
+                    .query(trx)
                     .skipUndefined()
                     .insertGraph(payload, {
                         relate: true
@@ -178,13 +230,15 @@ module.exports = {
                     .where({ userId: user.id })
                     .modify(builder => {
                         ctx.service.buildQuery({
-                            tableName, 
+                            tableName,
                             startDate,
                             endDate,
                             page,
                             limit
                         }, builder);
-                        builder.where('location', 'like', `%${location}%`);
+
+                        builder
+                            .where('location', 'like', `%${location}%`);
                     });
                 return new Response(
                     tasks.results, { 
@@ -286,6 +340,44 @@ module.exports = {
                     && moment(listEndAt).isAfter(moment(endAt))
                 ) throw new MolErr.BadRequestError('OFFSET_TIME_LIST');
             });
+        },
+
+        collectDate(str) {
+            const dateRgx = new RegExp('(?<tgl>(\\d{1,2}) (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))', 'i');
+            const altDateRgx = new RegExp('(?<har>(tomorrow|today|sunday|monday|tuesday|wednesday|thursday|friday|saturday))', 'i');
+
+            const dateRes = dateRgx.exec(str);
+            const dateRaw = _.get(dateRes, 'groups.tgl', null);
+            const dayValue = dateRaw ? parseInt(dateRes[2]) : null;
+            const monthValue = dateRaw ? parseInt(
+                moment.monthsShort().indexOf(
+                    dateRes[3].charAt(0).toUpperCase() + dateRes[3].slice(1)
+                ) + 1) : null;
+            const altDateRes = altDateRgx.exec(str);
+            const altDateRaw = _.get(altDateRes, 'groups.har', null);
+
+            return { 
+                dateRaw,
+                altDateRaw,
+                dayValue,
+                monthValue
+            };
+        },
+
+        collectHour(str) {
+            const hourRgx = new RegExp('(?<jam>(\\d{1,2})(pm|am))', 'i');
+
+            const hourRes = hourRgx.exec(str);
+            let hourRaw = _.get(hourRes, 'groups.jam', null);
+            if (_.endsWith(hourRaw, ' ')) hourRaw.slice(0, -1);
+            let hourValue = hourRaw ? parseInt(hourRes[2]) : null;
+            const hourSuffix = hourRaw ? hourRes[3] : null;
+            if (hourSuffix === 'pm') hourValue += 12;
+
+            return {
+                hourRaw,
+                hourValue
+            };
         }
     }
 };

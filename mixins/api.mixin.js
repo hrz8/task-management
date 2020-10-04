@@ -34,7 +34,8 @@ module.exports = {
 
             // check the expiration of session data from db
             const expired = _.get(session, 'expired');
-            if (moment(expired).isBefore(moment())) throw new MolErr.UnAuthorizedError('ERR_EXPIRED_TOKEN');
+            if (moment(expired)
+                .isBefore(moment())) throw new MolErr.UnAuthorizedError('ERR_EXPIRED_TOKEN');
             
             // user data will return into ctx.meta.user
             const user = await ctx.broker.models.User

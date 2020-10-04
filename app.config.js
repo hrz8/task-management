@@ -1,7 +1,8 @@
 module.exports = {
     namespace: 'todo',
     development: {
-        transport: 'nats://localhost:4222',
+        transporter: null, //'nats://localhost:4222',
+        cacher: null, //'redis://redis-server:6379',
         db: {
             host: process.env.DB_HOST || '127.0.0.1',
             port: 3306,

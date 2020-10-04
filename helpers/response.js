@@ -17,7 +17,7 @@ class SuccessResponse {
             throw new Error('message must be a string');
         }
 
-        this.status = _.toString(status);
+        this.status = _.toNumber(status);
         this.data = data;
         this.meta = meta;
         this.message = message;

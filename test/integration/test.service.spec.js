@@ -23,13 +23,13 @@ describe('Test services', () => {
         it('should create new user', async () => {
             await broker.call('users.remove', { params: { username: record.username } } );
             const res = await broker.call('users.create', { body: record } );
-            expect(res.status).toEqual('200');
+            expect(res.status).toEqual(200);
             USER_ID = res.data.id;
         });
 
         it('should get the created user', async () => {
             const res = await broker.call('users.get', { params: { id: USER_ID } });
-            expect(res.status).toEqual('200');
+            expect(res.status).toEqual(200);
         });
 
         it('should successfully login', async () => {
@@ -39,7 +39,7 @@ describe('Test services', () => {
                     password: record.password
                 } 
             });
-            expect(res.status).toEqual('200');
+            expect(res.status).toEqual(200);
             token = res.data.token;
         });
 
@@ -62,7 +62,7 @@ describe('Test services', () => {
 
         it('should create new task', async () => {
             const res = await broker.call('tasks.create', { body: task }, { meta: { user: { id: USER_ID} } } );
-            expect(res.status).toEqual('200');
+            expect(res.status).toEqual(200);
             await broker.call('users.remove', { params: { username: record.username } } );
         });
     });

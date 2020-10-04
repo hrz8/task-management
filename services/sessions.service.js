@@ -45,16 +45,24 @@ module.exports = {
                     throw new MolErr.BadRequestError('WRONG_PASSWORD');
                 }
 
-                const prevSession = await ctx.broker.models.Session.query().findOne({ userId: user.id });
+                const prevSession = await ctx.broker.models
+                    .Session
+                    .query()
+                    .findOne({ 
+                        userId: user.id 
+                    });
 
                 if (!_.isEmpty(prevSession)) {
                     await prevSession.$query().delete();
                 }
                 const sessData = this.generateSessionData(user.id, 'user');
-                await ctx.broker.models.Session.query().insertAndFetch({
-                    userId: user.id,
-                    ...sessData
-                });
+                await ctx.broker.models
+                    .Session
+                    .query()
+                    .insertAndFetch({
+                        userId: user.id,
+                        ...sessData
+                    });
 
                 return new Response({
                     user,
@@ -87,7 +95,9 @@ module.exports = {
                 });
 
                 for (const session of sessions) {
-                    await session.$query().delete();
+                    await session
+                        .$query()
+                        .delete();
                 }
 
                 return new Response({ cleared: true });

@@ -5,7 +5,7 @@ const { SuccessResponse } = require('../helpers/response');
 module.exports = {
     hooks: {
         before: {
-            '*': function(ctx) {    
+            '*': ctx => {    
                 const serviceName = _.get(ctx, 'service.name');
                 const actionName = _.get(ctx, 'action.rawName');
                 ctx.$responseMessage = ctx.action.responseMessage || `success ${actionName} ${serviceName}`;
@@ -13,14 +13,14 @@ module.exports = {
             },
         },
         after: {
-            '*': function(ctx, response) {
+            '*': (ctx, response) => {
                 const serialized = _
                     .chain(response)
                     .get('data')
                     .thru(obj => {
                         if (!_.isObjectLike(obj)) return {};
                         if (_.isEqual(ctx.options.serialize, false)) return obj;
-                        const res = _.attempt(this.getSerializer(ctx), obj);
+                        const res = _.attempt(ctx.service.getSerializer(ctx), obj);
                         if (_.isError(res)) return obj;
                         return res;
                     })
