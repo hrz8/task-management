@@ -37,7 +37,9 @@ module.exports = {
                 }),
             async handler(ctx) {
                 const { username, password } = _.get(ctx, 'params.body');
-                const user = await ctx.broker.models.User.query().findOne({ username });
+                const user = await ctx.broker.models.User
+                    .query()
+                    .findOne({ username });
 
                 if (_.isEmpty(user)) throw new MolErr.BadRequestError('UNKNOWN_USER');
 
@@ -52,9 +54,8 @@ module.exports = {
                         userId: user.id 
                     });
 
-                if (!_.isEmpty(prevSession)) {
-                    await prevSession.$query().delete();
-                }
+                if (!_.isEmpty(prevSession)) await prevSession.$query().delete();
+                
                 const sessData = this.generateSessionData(user.id, 'user');
                 await ctx.broker.models
                     .Session
@@ -114,7 +115,10 @@ module.exports = {
                 audience: _.toString(audience),
                 issuer: '2359media'
             });
-            return { token, expired };
+            return {
+                token,
+                expired
+            };
         }
     }
 };

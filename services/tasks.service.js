@@ -97,62 +97,33 @@ module.exports = {
                         _.set(pl, 'description', str);
 
                         // collecting date from string
-                        const { 
-                            dateRaw,
-                            altDateRaw,
-                            dayValue,
-                            monthValue
-                        } = this.collectDate(str);
+                        const { date, altDate } = this.collectDate(str, dt);
 
                         // collecting hour from string
-                        const {
-                            hourRaw,hourValue
-                        } = this.collectHour(str);
+                        const { hour } = this.collectHour(str);
 
                         // handling date regex result
-                        if (!_.isNull(dateRaw) || !_.isNull(altDateRaw)) {
-
+                        if (!_.isNull(date.raw) || !_.isNull(altDate.raw)) {
                             // make sure that will not something like this: 
                             // "train biceps for the guns at 19 jun 9pm tomorrow"
-                            if (!_.isNull(dateRaw) 
-                                && !_.isNull(altDateRaw)) throw new MolErr
+                            if (!_.isNull(date.raw) 
+                                && !_.isNull(altDate.raw)) throw new MolErr
                                 .BadRequestError('AMBIGOUS_DATE_INPUT');
 
-                            if (!_.isNull(dateRaw)) {
-                                const monthStr = String(monthValue).padStart(2, '0');
-                                const dayStr = String(dayValue).padStart(2, '0');
-                                dt = moment(`${moment().year()}-${monthStr}-${dayStr}`)
-                                    .startOf('day')
-                                    .toDate();
-                            }
+                            // handle date input for example: 19 jun
+                            if (!_.isNull(date.raw)) dt = moment(date.dateStrFmt)
+                                .startOf('day')
+                                .toDate();
 
-                            if (!_.isNull(altDateRaw)) {
-                                let inc = altDateRaw === 'tomorrow'? 1 : 0;
-                                const todayNameDay = moment(day)
-                                    .format('dddd')
-                                    .toLocaleLowerCase();
-                                if (altDateRaw !== 'today' && altDateRaw !== 'tomorrow') {
-                                    const tdyI = moment.weekdays()
-                                        .indexOf(
-                                            todayNameDay.charAt(0).toUpperCase() + todayNameDay.slice(1)
-                                        );
-                                    const harI = moment.weekdays()
-                                        .indexOf(
-                                            altDateRaw.charAt(0).toUpperCase() + altDateRaw.slice(1)
-                                        );
-                                    inc = harI - tdyI < 0 ? harI - tdyI + 7 : harI - tdyI;
-                                }
-                                dt = moment(day)
-                                    .add(inc, 'day')
-                                    .startOf('day')
-                                    .toDate();
-                                _.set(pl, 'startAt', dt);
-                            }
+                            // handle date input for example: tomorrow, today, sunday, monday
+                            if (!_.isNull(altDate.raw)) dt = moment(dt)
+                                .add(altDate.increment, 'day')
+                                .startOf('day')
+                                .toDate();
 
-                            // replace day payload if not yes replaced
                             if (initDay) {
+                                // replace day payload if not yes replaced
                                 _.set(payload, 'day', dt);
-                                initDay = false;
                             } else if (!moment(dt).isSame(moment(_.get(payload, 'day')))) {
                                 throw new MolErr
                                     .BadRequestError('DIFFERENT_DATE_IN_SAME_TASK');
@@ -160,15 +131,12 @@ module.exports = {
                         }
 
                         // handling hour regex result
-                        if (!_.isNull(hourRaw)) {
-                            const hourStr = String(hourValue).padStart(2, '0');
-                            dt = moment(
-                                `${moment(dt).format('YYYY-MM-DD')} ${hourStr}`
-                            ).toDate();
-                            _.set(pl, 'startAt', dt);
-                            initDay = false;
-                        }
+                        if (!_.isNull(hour.raw)) dt = moment(
+                            `${moment(dt).format('YYYY-MM-DD')} ${hour.str}`
+                        ).toDate();
 
+                        _.set(pl, 'startAt', dt);
+                        initDay = false;
                         lists.push(pl);
                     });
                     _.set(payload, 'lists', lists);
@@ -342,25 +310,61 @@ module.exports = {
             });
         },
 
-        collectDate(str) {
+        collectDate(str, dt) {
             const dateRgx = new RegExp('(?<tgl>(\\d{1,2}) (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))', 'i');
             const altDateRgx = new RegExp('(?<har>(tomorrow|today|sunday|monday|tuesday|wednesday|thursday|friday|saturday))', 'i');
 
+            // 19 jun handler
             const dateRes = dateRgx.exec(str);
             const dateRaw = _.get(dateRes, 'groups.tgl', null);
-            const dayValue = dateRaw ? parseInt(dateRes[2]) : null;
-            const monthValue = dateRaw ? parseInt(
-                moment.monthsShort().indexOf(
-                    dateRes[3].charAt(0).toUpperCase() + dateRes[3].slice(1)
-                ) + 1) : null;
+            const day = dateRaw ? parseInt(dateRes[2]) : null;
+            const month = dateRaw ? parseInt(
+                moment.monthsShort()
+                    .indexOf(
+                        dateRes[3].charAt(0).toUpperCase() + dateRes[3].slice(1)
+                    ) + 1) : null;
+            const monthStr = dateRaw ? String(month).padStart(2, '0') : null;
+            const dayStr = dateRaw ? String(day).padStart(2, '0') : null;
+            const year = dateRaw ? (moment(`${moment().year()}-${monthStr}-${dayStr}`)
+                .isBefore(moment()) ?
+                moment().year() + 1 :
+                moment().year()) : null;
+            const yearStr = dateRaw ? String(year) : null;
+            const dateStrFmt = `${yearStr}-${monthStr}-${dayStr}`;
+                    
+            // today, tomorrow, sunday, monday handler
             const altDateRes = altDateRgx.exec(str);
             const altDateRaw = _.get(altDateRes, 'groups.har', null);
+            let increment = altDateRaw ? (altDateRaw === 'tomorrow'? 1 : 0) : null;
+            const todayNameDay = altDateRaw ? moment(dt)
+                .format('dddd')
+                .toLocaleLowerCase() : null;
+            if (altDateRaw 
+                && altDateRaw !== 'today' 
+                && altDateRaw !== 'tomorrow') {
+                const tdyI = moment.weekdays()
+                    .indexOf(
+                        todayNameDay.charAt(0).toUpperCase() + todayNameDay.slice(1)
+                    );
+                const harI = moment.weekdays()
+                    .indexOf(
+                        altDateRaw.charAt(0).toUpperCase() + altDateRaw.slice(1)
+                    );
+                increment = harI - tdyI < 0 ? harI - tdyI + 7 : harI - tdyI;
+            }
 
-            return { 
-                dateRaw,
-                altDateRaw,
-                dayValue,
-                monthValue
+            return {
+                date: {
+                    raw: dateRaw,
+                    dayStr,
+                    monthStr,
+                    yearStr,
+                    dateStrFmt
+                },
+                altDate: {
+                    raw: altDateRaw,
+                    increment
+                }
             };
         },
 
@@ -370,13 +374,17 @@ module.exports = {
             const hourRes = hourRgx.exec(str);
             let hourRaw = _.get(hourRes, 'groups.jam', null);
             if (_.endsWith(hourRaw, ' ')) hourRaw.slice(0, -1);
-            let hourValue = hourRaw ? parseInt(hourRes[2]) : null;
+            let hour = hourRaw ? parseInt(hourRes[2]) : null;
+            if (hour > 12 || hour < 1) throw new MolErr.BadRequestError('INVALID_TIME');
             const hourSuffix = hourRaw ? hourRes[3] : null;
-            if (hourSuffix === 'pm') hourValue += 12;
+            if (hourSuffix === 'pm') hour += 12;
+            const hourStr = String(hour).padStart(2, '0');
 
             return {
-                hourRaw,
-                hourValue
+                hour: {
+                    raw: hourRaw,
+                    str: hourStr
+                }
             };
         }
     }

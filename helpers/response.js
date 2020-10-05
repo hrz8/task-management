@@ -24,4 +24,7 @@ class SuccessResponse {
     }
 }
 
-module.exports = { Response, SuccessResponse };
+module.exports = {
+    Response,
+    SuccessResponse
+};
